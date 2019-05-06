@@ -26,7 +26,7 @@ public class JoinRunner {
         Path output=new Path(args[1] + "/" + timeStamp); // part-r-0000
 
         // Job
-        Job job = Job.getInstance(configuration, "join-iraj");
+        Job job = Job.getInstance(configuration, "join-folakemi");
 
         // Job classes to run
         job.setJarByClass(JoinRunner.class);
