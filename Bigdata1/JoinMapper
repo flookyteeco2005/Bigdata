@@ -1,0 +1,45 @@
+package ca.montrealcollege.bigdata;
+
+import java.io.IOException;
+
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+
+/**
+ * Input: <Line number, a line from input file> => <LongWritable, Text>
+ * The input is TSV and each line represents a record.
+ * Assume that the common field is the first one.
+ * Output: <Common field(s), a record> => <Text, Text>
+ * a record is represented in Text (string) as concatenating all fields with '\\t' character.
+ * For example: [a, 1] => "a,1"
+ * 
+ * Mapping example:
+ * a	1 =====> <a, "R,a,1">
+ * a	2 =====> <a, "R,a,2">
+ * b	3 =====> <b, "R,b,3">
+ * c	4 =====> <c, "R,c,4">
+ */
+public class JoinMapper extends Mapper<LongWritable, Text, Text, Text>{
+
+	@Override
+    protected void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+		
+		// Parse input
+        String record = value.toString();
+        String[] fields = record.split(",");
+        String fileName = ((FileSplit) context.getInputSplit()).getPath().getName();
+        // Map key
+        String mapKey = fileName.equals("R") ? fields[1] : fields[0];
+        Text keyOut = new Text(mapKey.toUpperCase());
+        // Map value
+        
+        Text valueOut = new Text(fileName + "," + record);
+        
+        // Commit
+        context.write(keyOut, valueOut);
+    }
+
+}
