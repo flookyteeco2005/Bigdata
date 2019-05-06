@@ -1,0 +1,45 @@
+package ca.montrealcollege.bigdata;
+
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class JoinRunner {
+
+	public static void main(String[] args) throws Exception {
+		// Configuration
+        Configuration configuration = new Configuration();
+        
+        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss", Locale.US).format(new Timestamp(System.currentTimeMillis()));
+        
+        // Paths to input and output
+        Path input=new Path(args[0]);
+        Path output=new Path(args[1] + "/" + timeStamp); // part-r-0000
+
+        // Job
+        Job job = Job.getInstance(configuration, "join-iraj");
+
+        // Job classes to run
+        job.setJarByClass(JoinRunner.class);
+        job.setMapperClass(JoinMapper.class);
+        job.setReducerClass(JoinReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(Text.class);
+
+        FileInputFormat.addInputPath(job, input);
+        FileOutputFormat.setOutputPath(job, output);
+
+        System.exit(job.waitForCompletion(true)?0:1);
+
+	}
+
+}
