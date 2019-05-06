@@ -1,0 +1,32 @@
+package ca.montrealcollege.bigdata;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class ThreeWayJoin {
+	
+	public static void main(String[] args) throws Exception{
+		Configuration configuration = new Configuration();
+        
+        // Paths to input and output
+        Path input=new Path(args[0]);  // Initial input
+        Path intermediateResult = new Path("/user/root/intermediate");
+        Path output=new Path(args[1]); // Final output
+
+        // Job
+        Job job1 = Job.getInstance(configuration, "join-R-and-S");
+        FileInputFormat.addInputPath(job1, input);
+        FileOutputFormat.setOutputPath(job1, intermediateResult);
+        job1.waitForCompletion(true);
+        
+        Job job2 = Job.getInstance(configuration, "join-R-and-S");
+        FileInputFormat.addInputPath(job2, intermediateResult);
+        FileOutputFormat.setOutputPath(job2, output);
+        job2.waitForCompletion(true);
+	}
+
+}
