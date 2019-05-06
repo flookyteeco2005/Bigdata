@@ -1,0 +1,39 @@
+package ca.montrealcollege.bigdata;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+import java.io.IOException;
+
+public class Runner {
+
+    public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
+        // Configuration
+        Configuration configuration = new Configuration();
+
+        // Paths to input and output
+        Path input=new Path("/root/hadoop-2.7.7/etc/hadoop");
+        Path output=new Path("/root/Documents/wc_output_2");
+
+        // Job
+        Job job = Job.getInstance(configuration, "word-count-iraj");
+
+        // Job classes to run
+        job.setJarByClass(Runner.class);
+        job.setMapperClass(WordCountMapper.class);
+        job.setReducerClass(WordCountReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, input);
+        FileOutputFormat.setOutputPath(job, output);
+
+        System.exit(job.waitForCompletion(true)?0:1);
+    }
+
+}
