@@ -1,0 +1,51 @@
+package ca.montrealcollege.bigdata.hbase;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.hadoop.conf.Configuration;
+
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.ClusterConnection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.Table;
+
+
+public class HBaseRepository {
+	
+	private Table table;
+	
+	public HBaseRepository(String tableName) throws IOException {
+		Configuration conf = new Configuration();
+		ClusterConnection connection =
+				(ClusterConnection) ConnectionFactory.createConnection(conf);
+		this.table = connection.getTable(TableName.valueOf(tableName));
+	}
+	
+	// Assume that model is defined in HBase repository
+	/*
+	 * hbase(main):048:0> get 'MCIT:BIGDATA2', 'row-1'
+ COLUMN     CELL                                                                                              
+ CF1:Col1   value=val1                                                               
+ CF1:Col2   value=val2                                                               
+ CF2:Col3   value=val4                                                               
+ CF2:Col4   value=val5
+	 */
+	public Map<String, String> get(String rowKey) throws IOException {
+		Map<String, String> result = new HashMap<String, String>();
+		Get get = new Get(rowKey.getBytes());
+		Result hbaseResult = table.get(get);
+		String value1 = new String(hbaseResult.getValue("CF1".getBytes(), "Col1".getBytes()));
+		result.put("CF1:Col1", value1);
+		String value2 = new String(hbaseResult.getValue("CF1".getBytes(), "Col2".getBytes()));
+		result.put("CF1:Col2", value2);
+		String value3 = new String(hbaseResult.getValue("CF2".getBytes(), "Col3".getBytes()));
+		result.put("CF2:Col3", value3);
+		String value4 = new String(hbaseResult.getValue("CF2".getBytes(), "Col4".getBytes()));
+		result.put("CF2:Col4", value4);	
+		return result;
+	}
+}
