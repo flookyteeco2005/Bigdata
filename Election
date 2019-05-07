@@ -1,0 +1,112 @@
+package ca.montrealcollege.bigdata.zk;
+
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.leader.CancelLeadershipException;
+import org.apache.curator.framework.recipes.leader.LeaderSelector;
+import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
+import org.apache.curator.framework.recipes.leader.Participant;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.retry.ExponentialBackoffRetry;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
+public class Election {
+
+    private CuratorFramework curatorFrameworkClient;
+    private String leaderPath;
+    private LeaderSelector leaderSelector;
+
+    public static void main(String[] args) throws UnknownHostException, InterruptedException {
+        new Election().start();
+    }
+
+    public Election(){
+        RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 10);
+        curatorFrameworkClient = 
+        		CuratorFrameworkFactory.newClient("localhost:2181", retryPolicy);
+        leaderPath = "/zoo/leader";
+    }
+
+    public void start() throws InterruptedException, UnknownHostException {
+
+        curatorFrameworkClient.start();
+        if(!curatorFrameworkClient.blockUntilConnected(10, TimeUnit.SECONDS)){
+            throw new RuntimeException("Unable to connect to Zookeeper");
+        }
+
+        try {
+            final String electionId = InetAddress.getLocalHost() + "_" + LocalDateTime.now();
+            leaderSelector = new LeaderSelector(curatorFrameworkClient, leaderPath, new CustomLeaderSelectorListener());
+            leaderSelector.setId(electionId);
+            leaderSelector.start();
+
+            boolean running = true;
+            while (running) {
+                Thread.sleep(1000);
+            }
+        } finally {
+            closeZookeeper();
+        }
+
+    }
+
+    private void closeZookeeper(){
+        if (leaderSelector != null) {
+            System.out.println(String.format("Closing leader of path '%s' with ID %s", leaderPath, leaderSelector.getId()));
+            leaderSelector.close();
+        }
+        curatorFrameworkClient.close();
+    }
+
+    private class CustomLeaderSelectorListener implements LeaderSelectorListener {
+
+        @Override
+        public void takeLeadership(CuratorFramework curatorFramework) {
+            System.out.println(String.format("Mastership participants: %s, %s", leaderSelector.getId(), getParticipants()));
+            System.out.println("Elected leader" + leaderSelector.getId());
+            while (leaderSelector.hasLeadership()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
+            switch (connectionState) {
+                case CONNECTED:
+                    System.out.println(String.format("Mastership participants: %s, %s", leaderSelector.getId(), getParticipants()));
+                    break;
+                case LOST:
+                    System.out.println("Leader Zookeeper connection lost.");
+                    throw new CancelLeadershipException("Connection to Zookeeper is lost");
+                case SUSPENDED:
+                    System.out.println("Leader Zookeeper connection suspended.");
+                    throw new CancelLeadershipException("Connection to Zookeeper is suspended");
+                case RECONNECTED: // we do not recover from SUSPENDED status
+                case READ_ONLY:   // this can not happen, curatorFramework is not set to be readonly: skip
+                    throw new IllegalStateException(
+                            String.format("Unsupported Zookeeper state encountered: %s", connectionState));
+            }
+        }
+
+        private Collection<Participant> getParticipants() {
+            try {
+                return leaderSelector.getParticipants();
+            } catch (Exception e) {
+                System.out.println("Failed to get the list of participants");
+                return Collections.emptyList();
+            }
+        }
+    }
+
+}
