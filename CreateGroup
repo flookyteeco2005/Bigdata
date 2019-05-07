@@ -1,0 +1,51 @@
+package ca.montrealcollege.bigdata.zk;
+
+import org.apache.zookeeper.*;
+
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+
+/**
+ * A class to create a group in Zookeeper. It is an implementation of
+ * {@link Watcher} that receives callbacks from zookeeper for various events
+ */
+public class CreateGroup implements Watcher {
+
+    private static final int SESSION_TIMEOUT = 5000;
+    /** A client for Zookeeper */
+    private ZooKeeper zk;
+    private CountDownLatch connectedSignal = new CountDownLatch(1);
+
+    private void connect(String hosts) throws IOException, InterruptedException {
+        zk = new ZooKeeper(hosts, SESSION_TIMEOUT, this);
+        connectedSignal.await(); // awaits till the counter value is 0
+    }
+
+    /**
+     * When it connects to ZK, this method is called. {@code countDown()} is used to unblock the process.
+     */
+    public void process(WatchedEvent event) { // Watcher interface
+        if (event.getState() == Event.KeeperState.SyncConnected) {
+            connectedSignal.countDown();
+        }
+    }
+
+    private void create(String groupName) throws KeeperException,InterruptedException {
+        String path = "/" + groupName;
+        String createdPath = zk.create(path, null/*data*/, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                CreateMode.PERSISTENT);
+        System.out.println("Created " + createdPath);
+    }
+
+    private void close() throws InterruptedException {
+        zk.close();
+    }
+
+    public static void main(String[] args) throws Exception {
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.connect("localhost");
+        createGroup.create(args[0]);
+        createGroup.close();
+    }
+
+}
