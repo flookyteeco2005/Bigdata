@@ -1,0 +1,35 @@
+package ca.montrealcollege.bigdata.zk;
+
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
+
+public class JoinGroup extends ConnectionWatcher {
+    public void join(String groupName, String memberName) throws KeeperException,
+            InterruptedException {
+        String path = "/" + groupName + "/" + memberName;
+        String createdPath = zk.create(path, null/*data*/, ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                CreateMode.PERSISTENT);
+        System.out.println("Created " + createdPath);
+    }
+    public static void main(String[] args) throws Exception {
+        String server = "localhost";
+        String group = "zoo";
+        // Process duck
+        JoinGroup dockGroup = new JoinGroup();
+        dockGroup.connect(server);
+        dockGroup.join(group, "duck");
+        
+        // Process cow
+        JoinGroup cowGroup = new JoinGroup();
+        cowGroup.connect(server);
+        cowGroup.join(group, "cow");
+        
+        // process goat
+        JoinGroup goatGroup = new JoinGroup();
+        goatGroup.connect(server);
+        goatGroup.join(group, "goat");
+// stay alive until process is killed or thread is interrupted
+        Thread.sleep(Long.MAX_VALUE);
+    }
+}
