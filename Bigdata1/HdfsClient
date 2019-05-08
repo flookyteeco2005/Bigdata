@@ -17,7 +17,7 @@ public class HdfsClient {
         FileSystem fs = FileSystem.get(conf);
         System.out.println(fs.getUri());
         System.out.println(fs.getWorkingDirectory());
-        fs.mkdirs(new Path("/iraj/input")); // mkdir -p /iraj/input
+        fs.mkdirs(new Path("/folakemi/input")); // mkdir -p /folakemi/input
     }
 
 }
